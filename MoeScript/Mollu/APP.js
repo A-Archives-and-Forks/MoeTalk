@@ -5566,7 +5566,12 @@
 						if(r === 'zh_cn' || r === 'zh_tw'){r = 'pinyin'}//@中文改为拼音排序
 						if("生日" === n.sortCharType)
 						{
-							if(GAME == 'BLDA')return getNextBirthdayDays(Birthday[e.no]) - getNextBirthdayDays(Birthday[t.no]);
+							if(GAME == 'BLDA')
+							{
+								i = getNextBirthdayDays(Birthday[e.no])
+								a = getNextBirthdayDays(Birthday[t.no])
+								return n.order ? i - a : a - i;
+							}
 							else n.sortCharType = "name"
 						}
 						//*按ID排序

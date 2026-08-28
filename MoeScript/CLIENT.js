@@ -580,7 +580,7 @@ async function 检查数据()
 		let data = await getfile('MoeData/links.json')
 		data = data ? JSON.parse(data).data : []
 		let arr = []
-		arr.push('https://moetalk.xiyihan.cn')
+		arr.push(xiyihan)
 		arr.push('https://moetalk.netlify.app')
 		arr.push('https://ggg555ttt.github.io/MoeTalk')
 		arr.push('https://raw.githubusercontent.com/ggg555ttt/MoeTalk/main')
@@ -617,7 +617,7 @@ async function 下载数据(url)
 		}
 		else
 		{
-			let data = await getfile(`https://moetalk.xiyihan.cn/${filename}`)
+			let data = await getfile(`${xiyihan}/${filename}`)
 			if(data)//下载成功
 			{
 				await 保存文件(filename, data)

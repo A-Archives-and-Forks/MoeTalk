@@ -166,8 +166,8 @@ async function 加载数据(first = null,MMT = null)
 	if(!mt_settings['选择游戏'])selectgame()
 }
 
-var 字体链接 = 'https://moetalk.xiyihan.cn/MoeData/Fonts/Blueaka.woff2'
-var 网络字体 = `@import url(https://moetalk.xiyihan.cn/MoeData/Fonts/Blueaka/Blueaka.css);body,input,button,textarea{font-family:Cyrillic,Blueaka;}`
+var 字体链接 = `${xiyihan}/MoeData/Fonts/Blueaka.woff2`
+var 网络字体 = `@import url(${xiyihan}/MoeData/Fonts/Blueaka/Blueaka.css);body,input,button,textarea{font-family:Cyrillic,Blueaka;}`
 var 本地字体 = `@font-face{font-family:Blueaka;src:url(./MoeData/Fonts/Blueaka.woff2)}body,input,button,textarea{font-family:Cyrillic,Blueaka;}`
 async function 加载字体(FontCss = `@import url(./MoeData/Fonts/Blueaka/Blueaka.css);body,input,button,textarea{font-family:Cyrillic,Blueaka;}`)
 {

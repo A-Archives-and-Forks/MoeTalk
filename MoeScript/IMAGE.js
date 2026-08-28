@@ -20,7 +20,7 @@ async function IMAGE_error(image,play)
 	if(本地 && src && GAME != 'NONE' && src.startsWith(href+'GameData'))
 	{
 		let filename = src.replace(href+'GameData','GameData')
-		let link = 'https://moetalk.xiyihan.cn/'+filename
+		let link = xiyihan+'/'+filename
 		if(!下载文件[link])
 		{
 			下载文件[link] = 1
