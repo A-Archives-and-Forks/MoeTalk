@@ -392,7 +392,7 @@
 								display:'block',
 								marginLeft: '0.2rem'
 							},
-							children: n.profile.map(function(e)
+							children: n.profile.concat(CUSTOM_HEAD[n.no] || []).map(function(e)
 							{
 								return (0, m.jsx)('img',
 								{
@@ -1835,11 +1835,7 @@
 								}), (0, m.jsx)(ea.Dx,
 								{
 									className: "bold",
-									children: [`${选择列表.length ? '区域截图' : L.Z.download_to_image[g]}`,'(',(0, m.jsx)('span',
-									{
-										className: "截图数量",
-										children: imageArr.length
-									}),')']
+									children: [`${选择列表.length ? '区域截图' : L.Z.download_to_image[g]}`]
 								}), (0, m.jsx)(ea.ec,
 								{
 									style:
@@ -1874,9 +1870,10 @@
 									onClick: function()
 									{
 										if(正在截图)return
+										$$('.INDEX_CaptureTips').html('')
+										上次截图 = []
 										srceenMode()
 										D()
-										$$('.截图预览').hide()
 										if(虚拟滚动 !== '关闭' && !window.chatList)
 										{
 											window.chatList = new DynamicVirtualScroll('.显示区域', '.元素列表');
@@ -1888,7 +1885,6 @@
 								style: {display: b ? "block" : "none"},
 								children: [(0, m.jsx)('div',
 								{
-									className: '截图预览',
 									style:
 									{
 										width: '100%',
@@ -1905,10 +1901,11 @@
 											color: 'black',
 											padding: '0.5rem',
 										},
-										className: 'cVRiXh eIEKpg evqKja kwhiZC',
-										children: '此处截取单图',
+										className: '截图预览 cVRiXh eIEKpg evqKja kwhiZC',
+										children: '截取单图',
 										onClick: function(e)
 										{
+											$$('.截图预览').attr('disabled','disabled').css('color','')
 											imageArr = [上次截图[$$('.上次截图').val()]]
 											imageArrL = localStorage['imageArrL'] || imageArr.length
 											$$('.mt_capture').click()
@@ -1916,9 +1913,10 @@
 									}), (0, m.jsx)("select",
 									{
 										style: {fontSize: '2rem'},
-										className: '上次截图',
+										className: '截图预览 上次截图',
 										onChange: function()
 										{
+											$$('.INDEX_CaptureTips').html('')
 											let arr = 上次截图[$$('.上次截图').val()]
 											let html = ''
 											截图区域.outerWidth(mt_settings['宽度限制']).css('background-color',mt_settings.风格样式.bgColor)
@@ -1939,10 +1937,11 @@
 											color: 'black',
 											padding: '0.5rem',
 										},
-										className: 'cVRiXh eIEKpg evqKja kwhiZC',
-										children: '此处连续截图',
+										className: '截图预览 cVRiXh eIEKpg evqKja kwhiZC',
+										children: '连续截图',
 										onClick: function(e)
 										{
+											$$('.截图预览').attr('disabled','disabled').css('color','')
 											imageArr = 上次截图.slice($$('.上次截图').val(),上次截图.length)
 											imageArrL = imageArr.length
 											if((设备信息.device.isApple || mt_settings['打包下载']) && imageArrL > 1)imageZip = false;
@@ -1961,10 +1960,7 @@
 									className: 'INDEX_CaptureTips'
 								}), (0, m.jsx)('div',
 								{
-									className: '图片预览',
-									style: {overflow: 'scroll'}
-								}), (0, m.jsx)('div',
-								{
+									className: 'scrollbar',
 									style: 
 									{
 										width: '100%',
@@ -2152,7 +2148,7 @@
 											display: 'flex',
 											justifyContent: 'space-evenly'
 										},
-										children: (0, m.jsx)("button",
+										children: [(0, m.jsx)("button",
 										{
 											style:
 											{
@@ -2165,34 +2161,68 @@
 												display: !localStorage['imageArrL'] ? 'none' : ''
 											},
 											className: 'cVRiXh eIEKpg evqKja kwhiZC',
-											children: '返回上次截图',
-											onClick: function(e)
+											children: '上次截图',
+											onClick: async function()
 											{
-												let option = ''
-												截图区域.html('')
-												$$('.图片预览').html('')
-												$$('.截图预览').show()
-												数据操作('Sg','imageArr',function(err, data)
-												{	
-													上次截图 = data
-													foreach(data,function(k,v)
-													{
-														option += `<option value="${k}">第${v.index}/${上次截图.length}段</option>`
-													})
-													$$('.截图预览 select').html(option)
-													let arr = 上次截图[0]
-													let html = ''
-													截图区域.outerWidth(mt_settings['宽度限制']).css('background-color',mt_settings.风格样式.bgColor)
-													foreach(arr.chats,function(k,v)
-													{
-														v.isFirst = isfirst(k,arr.chats)
-														html += makeMessage(v.type,v,k,'预览')
-													})
-													截图区域.html(html)
-												})
 												j("1")
+												截图区域.html('')
+												上次截图 = await 数据操作('Sg','imageArr') || []
+
+												let option = ''
+												foreach(上次截图,function(k,v)
+												{
+													option += `<option value="${k}">${v.index}/${上次截图.length}</option>`
+												})
+												$$('.上次截图').html(option)
+												截图区域.outerWidth(mt_settings['宽度限制']).css('background-color',mt_settings.风格样式.bgColor)
+
+												let html = ''
+												foreach(上次截图[0].chats,function(k,v)
+												{
+													v.isFirst = isfirst(k,上次截图[0].chats)
+													html += makeMessage(v.type,v,k,'预览')
+												})
+												截图区域.html(html)
+												
 											}
-										})
+										}), (0, m.jsx)("button",
+										{
+											style:
+											{
+												width: 'auto',
+												height: 'auto',
+												fontSize: '1rem',
+												color: 'black',
+												padding: '0.5rem',
+												marginBottom: '0.5rem',
+												display: !imageArr.length ? 'none' : ''
+											},
+											className: 'cVRiXh eIEKpg evqKja kwhiZC',
+											children: '截图预览',
+											onClick: async function()
+											{
+												j("1")
+												截图区域.html('')
+												上次截图 = imageArr
+
+												let option = ''
+												foreach(上次截图,function(k,v)
+												{
+													option += `<option value="${k}">${v.index}/${上次截图.length}</option>`
+												})
+												$$('.上次截图').html(option)
+												截图区域.outerWidth(mt_settings['宽度限制']).css('background-color',mt_settings.风格样式.bgColor)
+
+												let html = ''
+												foreach(上次截图[0].chats,function(k,v)
+												{
+													v.isFirst = isfirst(k,上次截图[0].chats)
+													html += makeMessage(v.type,v,k,'预览')
+												})
+												截图区域.html(html)
+												
+											}
+										})]
 									}), (0, m.jsxs)(ea.$_,
 									{
 										children: [(0, m.jsx)(ea.Lw,
@@ -2211,6 +2241,14 @@
 											{
 												INIT_loading(1)
 												截屏预览(S)
+												$$('.截图预览').attr('disabled','disabled').css('color','')
+												上次截图 = imageArr.concat([])
+												let option = ''
+												foreach(上次截图,function(k,v)
+												{
+													option += `<option value="${k}">${v.index}/${上次截图.length}</option>`
+												})
+												$$('.上次截图').html(option)
 												O()
 											},
 											children: L.Z.confirm[g]
@@ -3297,6 +3335,7 @@
 																children: EmojiInfo,
 															}) ,(0, m.jsx)('img',
 															{
+																loading: 'lazy',
 																alt: EMOJI.type,
 																height: 310,
 																width: 310,

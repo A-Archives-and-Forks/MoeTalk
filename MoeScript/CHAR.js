@@ -293,19 +293,19 @@ function custom_char(info)
 	if(!char_info.custom)$('.添加头像').show()
 	else if(char_info.custom === '自定')$('.edithead').show()
 	else $('.edithead').hide()
-
-	let length = char_info.make ? 0 : char_info.profile.length
+	let heads = char_info.profile.concat(CUSTOM_HEAD[char_info.no] || [])
+	let length = char_info.make ? 0 : heads.length
 	let attr = 'width="252" height="252" decoding="async" data-nimg="1" loading="lazy" style="color: transparent; margin-right: 0.5rem;" class="common__Profile-sc-1ojome3-6 common__ProfileClick-sc-1ojome3-7 eLaCqa fuyFOl"'
 	$('.heads img').remove()
 	for(let i = 0; i < length; i++)
 	{
-		if(names[char_info.profile[i]])char_info.names[char_info.profile[i]] = names[char_info.profile[i]]
-		$('.heads').append(`<img src="${loadhead(char_info.no,char_info.profile[i])}" title="${char_info.profile[i]}" ${attr} onerror="IMAGE_error(this)">`)
+		if(names[heads[i]])char_info.names[heads[i]] = names[heads[i]]
+		$('.heads').append(`<img src="${loadhead(char_info.no,heads[i])}" title="${heads[i]}" ${attr} onerror="IMAGE_error(this)">`)
 	}
 	$('.heads img:eq(0)').click()
 	if(char_info.selected || char_info.selected === 0)
 	{
-		let name = char_info.names[char_info.profile[char_info.selected]]
+		let name = char_info.names[heads[char_info.selected]]
 		$(`.heads img:eq(${char_info.selected})`).addClass('selected')
 		$('.headinfo').show()
 		$('.headname').val(toString(name))
@@ -373,11 +373,7 @@ async function edit_char()
 		await Promise.all([数据操作('Ir',index),数据操作('Ts',index,src)])
 		delete mt_settings.人物改名[index]
 	})])
-	if(CUSTOM_HEAD[id])
-	{
-		CHAR_CharList[char_info.index].profile = arr
-		if(!CUSTOM_HEAD[id].length)delete CUSTOM_HEAD[id]
-	}
+	if(CUSTOM_HEAD[id] && !CUSTOM_HEAD[id].length)delete CUSTOM_HEAD[id]
 	$('#custom-char .rightSend').prop('checked') ? mt_settings['右侧发言'][id] = true : delete mt_settings['右侧发言'][id]
 	$('#custom-char .no').click()
 	数据操作('Ss','自定头像',CUSTOM_HEAD)
@@ -577,13 +573,6 @@ function 加载角色()
 		}
 		角色信息.info[id][2] = head.flat()
 		char.profile = 角色信息.info[id][2]
-		if(CUSTOM_HEAD[id])
-		{
-			for(let i=0,l=CUSTOM_HEAD[id].length;i<l;i++)
-			{
-				char.profile.push(CUSTOM_HEAD[id][i])
-			}
-		}
 		CHAR_CharList.push(char)
 	}
 }

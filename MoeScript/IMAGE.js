@@ -408,7 +408,7 @@ function mt_capture(清晰度,生成图片,标题)
 	let index = num.toString().length
 	if(index < l1)index = '0'.repeat(l1-index)+num
 	else index = num
-	$(".图片预览").html(`<div class='imageSave'><h1 style="text-align: center;"class='blod'><span class='red'>${num}</span> / ${localStorage['imageArrL']}</h1></div>`)
+
 	正在截图 = true
 	截图区域.outerWidth(mt_settings['宽度限制']).css('background-color',mt_settings.风格样式.bgColor)
 	$('.上次截图').val(num-1)
@@ -453,6 +453,7 @@ function mt_capture(清晰度,生成图片,标题)
 				{
 					正在截图 = false
 					INIT_loading(false)
+					$$('.截图预览').removeAttr('disabled').css('color','black')
 				}
 
 				if(首次截图)

@@ -75,6 +75,7 @@ async function 加载数据(first = null,MMT = null)
 {
 	加载字体()
 	自定义CSS()
+	if(!first)mt_settings = setting(mt_settings)
 //加载消息
 	if(!MMT)
 	{
@@ -91,7 +92,7 @@ async function 加载数据(first = null,MMT = null)
 		else chats.push(MMT[k])
 	})
 	refreshMessage(chats)//$('#mt_watermark').click()//显示消息
-	$('.jotOXZ').eq(3).click()
+	// $('.jotOXZ').eq(3).click()//显示右侧
 	INIT_loading(false)
 //初始化
 	角色信息 = {info:{},name:{},group:[],charface:[]}
@@ -105,18 +106,7 @@ async function 加载数据(first = null,MMT = null)
 		for(let key in head)await 数据操作('Is',key,head[key])
 		数据操作('Sr','mt-head')
 	}
-//读取数据
-	if(first)
-	{
-		if(本地)数据操作('Tk').then(arr=>{TempImg = new Set(arr || [])});
-		[mt_char,mt_schar,CUSTOM_HEAD] = await Promise.all(
-		[
-			数据操作('Sg','mt-char').then(json => json || {}),
-			数据操作('Tg','临时角色').then(json => json || {}),
-			数据操作('Sg','自定头像').then(json => json || {})
-		]);
-	}
-	else mt_settings = setting(mt_settings)
+//加载角色
 	if(localStorage[GAME+'/Char'])
 	{
 		角色信息 = pako.inflate(localStorage[GAME+'/Char'],{to:'string'})
@@ -164,6 +154,18 @@ async function 加载数据(first = null,MMT = null)
 		charList(true)//更新角色
 	}
 	if(!mt_settings['选择游戏'])selectgame()
+//加载自定义角色
+	if(first)
+	{
+		if(本地)数据操作('Tk').then(arr=>{TempImg = new Set(arr || [])});
+		[mt_char,mt_schar,CUSTOM_HEAD] = await Promise.all(
+		[
+			数据操作('Sg','mt-char').then(json => json || {}),
+			数据操作('Tg','临时角色').then(json => json || {}),
+			数据操作('Sg','自定头像').then(json => json || {})
+		]);
+		charList(true)//更新角色
+	}
 }
 
 var 字体链接 = `${xiyihan}/MoeData/Fonts/Blueaka.woff2`

@@ -672,7 +672,6 @@ async function 导出截图(filename,data,num)
 		data = await blobToBase64(data)
 		$('.截图区域').html(`<img src='data:${mt_settings['图片格式'] || 'image/png'};base64,${data}' style='width:100%;'>`)
 	}
-	$('.截图数量').text(imageArr.length)
 }
 async function 检测版本()
 {//HTML5+专用，新版替换旧版应用
