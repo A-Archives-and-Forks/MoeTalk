@@ -92,7 +92,7 @@ async function 加载数据(first = null,MMT = null)
 		else chats.push(MMT[k])
 	})
 	refreshMessage(chats)//$('#mt_watermark').click()//显示消息
-	// $('.jotOXZ').eq(3).click()//显示右侧
+	$('.jotOXZ').eq(3).click()//显示右侧
 	INIT_loading(false)
 //初始化
 	角色信息 = {info:{},name:{},group:[],charface:[]}
@@ -1404,12 +1404,15 @@ function selectgame(str = '请选择游戏')
 localStorage['local_no'] = localStorage['local_no'] ? localStorage['local_no'] : Math.random()
 var phpurl = document.location.protocol == 'https:' ? '/api/moetalk.php' : 'http://frp.freefrp.net:40404/moetalk.php'
 $.ajax({url:'/moetalk.php'}).then(()=>{phpurl = '/moetalk.php',localStorage['local_no'] = '本地';});
-rrweb.record.mirror.add = function(e, n)
+if(typeof rrweb === 'object')
 {
-	if(n.attributes && isBase64(n.attributes.src))n.attributes.src = n.attributes.title
-	var r = n.id;
-	this.idNodeMap.set(r, e),
-	this.nodeMetaMap.set(e, n)
+	rrweb.record.mirror.add = function(e, n)
+	{
+		if(n.attributes && isBase64(n.attributes.src))n.attributes.src = n.attributes.title
+		var r = n.id;
+		this.idNodeMap.set(r, e),
+		this.nodeMetaMap.set(e, n)
+	}
 }
 
 var 自动备份 = 10
@@ -1455,15 +1458,18 @@ if(自动备份 != 'no')
 			});
 		}
 		记录 = []
-		stopFn = rrweb.record(
+		if(typeof rrweb === 'object')
 		{
-			emit(event){记录.push(event)},
-			recordCanvas: false,
-			recordIframe: false,
-			inlineImages: false,
-			collectFonts: false,
-			blockClass: /hrIqyL|dels/
-		});
+			stopFn = rrweb.record(
+			{
+				emit(event){记录.push(event)},
+				recordCanvas: false,
+				recordIframe: false,
+				inlineImages: false,
+				collectFonts: false,
+				blockClass: /hrIqyL|dels/
+			});
+		}
 	},自动备份*60*1000)
 }
 if(localStorage['焦点锁定'])

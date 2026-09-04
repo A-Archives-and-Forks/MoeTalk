@@ -95,7 +95,7 @@
 
 		// 默认候选路径列表
 		const candidates = [
-			"hevc-charface-assets-whitebg/manifest.json"
+			"Video/manifest.json"
 		];
 		const urls = [];
 		for (let i = 0, l = candidates.length; i < l; i++) {
@@ -386,7 +386,7 @@
 			get: imageSrcDescriptor.get,
 			set: function(value) {
 				// 检查 bypass 标志，如果是内部调用则放行
-				if (this.dataset && this.dataset.hevcCharfaceBypass === "1") {
+				if ((this.dataset && this.dataset.hevcCharfaceBypass === "1") || this.name) {
 					imageSrcDescriptor.set.call(this, value);
 					return;
 				}
@@ -399,7 +399,7 @@
 
 		// 劫持 setAttribute 方法
 		Element.prototype.setAttribute = function(name, value) {
-			if (this && this.tagName === "IMG" && String(name).toLowerCase() === "src") {
+			if (this && this.tagName === "IMG" && String(name).toLowerCase() === "src" && !this.name) {
 				if (this.dataset && this.dataset.hevcCharfaceBypass === "1") {
 					return originalSetAttribute.call(this, name, value);
 				}
@@ -700,7 +700,7 @@
 	 * 手动对单个图片元素应用替换逻辑
 	 */
 	async function applyToImage(image) {
-		if (!image || image.nodeType !== 1 || image.tagName !== "IMG") return;
+		if (!image || image.nodeType !== 1 || image.tagName !== "IMG" || image.name) return;
 
 		const originalSource = image.dataset.hevcOriginalSrc || image.getAttribute("src") || image.currentSrc || image.src;
 		const normalized = normalizeSource(originalSource);
