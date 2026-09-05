@@ -199,7 +199,7 @@ async function ZipToJson(file,text = '',html = null)
 	let json = await $ajax(file,text,html)
 	if(typeof json === 'string')return file
 	json = await JSZip.loadAsync(json);
-	return await json.files[Object.keys(json.files)[0]].async('string')
+	return await json.files['data.json'].async('string')
 }
 function 外部下载(filename, data)
 {//HTML5+，用于下载存档和zip

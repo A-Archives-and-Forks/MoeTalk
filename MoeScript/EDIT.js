@@ -817,7 +817,7 @@ $('body').on('click', ".chatText", function() {
 		str = '在上方插入'
 		跳转索引(选择列表[0], {block: 'center'});
 	}
-	$('.chatText').css('text-align',mt_settings.右侧发言[id] && 'right' || '').attr('placeholder',name+'：'+str)
+	$('.chatText').attr('placeholder',name+'：'+str)
 });
 // 高性能批量更新所有名字
 function updateAllNames() {

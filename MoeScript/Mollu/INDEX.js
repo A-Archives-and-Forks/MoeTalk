@@ -4365,7 +4365,7 @@
 												maxHeight: '10rem',
 												border: '2px dashed rgb(139, 187, 233)'
 											},
-											src: '',
+											src: href+'MoeData/Ui/School/NONE.webp',
 											onError: function(e){IMAGE_error(e)}
 										}), (0, m.jsxs)('div',
 										{
@@ -9311,7 +9311,7 @@
 											{//图片消息
 												className: '图片',
 												style: style,
-												src: isBase64(t.file) ? t.file : href+t.file,
+												src: isBase64(t.file) ? t.file : loadImg(href+t.file),
 												onError: function(e){IMAGE_error(e,'palyer')},
 											}), t.time ? (0, m.jsx)(s.i9,
 											{//右侧时间戳
