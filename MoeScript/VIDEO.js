@@ -17,10 +17,7 @@
  * 全局状态管理对象
  */
 const state = {
-	cf: new Set(),
 	manifest: {BLDA:{}},       // 当前使用的主 manifest 对象
-	manifests: [],             // 所有成功加载的 manifest 列表（支持多源回退）
-	manifestPromise: null,     // manifest 加载的 Promise，用于防止并发重复请求
 	assetRoot: null,           // 资源根目录 URL
 	videos: new Map(),         // 缓存已创建的 <video> 元素及其上下文 (Map<videoUrl, entry>)
 	failedVideos: new Set(),   // 记录加载或解码失败的 video URL，避免重复尝试
@@ -49,29 +46,6 @@ const state = {
 	// 缓存原生 fetch 方法
 	const originalFetch = typeof window.fetch === "function" ? window.fetch.bind(window) : null;
 
-	/**
-	 * 暴露给外部的 API 接口
-	 * 可通过 window.MoeTalkHevcCharFace 访问
-	 */
-	const api = {
-		// 默认启用，除非 localStorage 显式设置为 "0" 或 userConfig 显式禁用
-		enabled: localStorage.getItem("mt_hevc_charface") !== "0" && userConfig.enabled !== false,
-		fps: 10, // 默认帧率，可被 manifest 中的 framerate 覆盖
-		getManifestUrls,
-		loadManifest,
-		getKnownFrames,
-		getFrameDataUrl,
-		applyToImage,
-		scanNode,
-		start,
-		normalizeSource
-	};
-
-	// 将 API 挂载到全局对象
-	window.MoeTalkHevcCharFace = api;
-
-	// 如果功能被禁用，则直接退出，不执行任何劫持逻辑
-	if (!api.enabled) return;
 
 	// 启动核心劫持逻辑
 	patchImageSourceHooks();
@@ -113,63 +87,8 @@ const state = {
 	}
 
 	/**
-	 * 异步加载 manifest 文件
-	 * 包含并发控制和多源回退机制
-	 * @returns {Promise<Array>} 加载成功的 manifest 列表
-	 */
-	async function loadManifest() {
-		// 如果已经加载过，直接返回缓存
-		if (state.manifests.length) return state.manifests;
-		// 如果正在加载中，返回现有的 Promise，避免重复发起网络请求
-		if (state.manifestPromise) return state.manifestPromise;
-
-		state.manifestPromise = (async function() {
-			let lastError = null;
-			const loadedManifests = [];
-			const manifestUrls = getManifestUrls();
-			
-			// 遍历候选 URL，只要成功加载一个即可，但会尝试加载所有有效的
-			for (let i = 0, l = manifestUrls.length; i < l; i++) {
-				const manifestUrl = manifestUrls[i];
-				try {
-					const response = await originalFetch(manifestUrl, { cache: "no-store" });
-					if (!response.ok) throw new Error("Manifest request failed: " + response.status + " @ " + manifestUrl);
-					const manifest = await response.json();
-					loadedManifests.push({
-						manifest,
-						manifestUrl,
-						assetRoot: new URL("./", manifestUrl).href // 推导资源根目录
-					});
-				} catch (error) {
-					lastError = error;
-				}
-			}
-
-			if (loadedManifests.length) {
-				state.manifests = loadedManifests;
-				state.manifest = loadedManifests[0].manifest;
-				state.assetRoot = loadedManifests[0].assetRoot;
-				api.fps = loadedManifests[0].manifest.framerate || api.fps;
-				return loadedManifests;
-			}
-
-			// 全部失败时的警告处理（仅警告一次）
-			if (!state.manifestWarned) {
-				state.manifestWarned = true;
-				console.warn("[HEVC_CHARFACE] manifest unavailable", lastError);
-			}
-			state.manifest = null;
-			state.manifests = [];
-			state.assetRoot = null;
-			return [];
-		})();
-
-		return state.manifestPromise;
-	}
-
-	/**
 	 * 规范化目录级别的资源路径
-	 * 提取包含 "GameData/" 且包含 "/CharFace/" 的路径，去除查询参数和哈希
+	 * 提取包含 "GameData/" 且包含 TestFace 的路径，去除查询参数和哈希
 	 * @param {string} source 原始路径
 	 * @returns {string|null} 规范化后的路径，若不匹配规则则返回 null
 	 */
@@ -183,7 +102,7 @@ const state = {
 		let normalized = raw.slice(matchIndex).split("?")[0].split("#")[0].replaceAll("\\", "/");
 		
 		// 必须是 CharFace 目录下的资源
-		if (!normalized.includes("/CharFace/")) return null;
+		if (!normalized.includes(TestFace)) return null;
 		if (normalized.endsWith("/")) normalized = normalized.slice(0, -1);
 		
 		try {
@@ -207,53 +126,27 @@ const state = {
 	}
 
 	/**
-	 * 根据原始来源获取该目录下所有已知帧的列表
-	 * @param {string} source 原始来源
-	 * @returns {string[]|null} 帧名称数组，若未找到则返回 null
-	 */
-	function getKnownFrames(source) {
-		const dirKey = normalizeDirectorySource(source);
-		if (!dirKey || !state.manifests.length) return null;
-		
-		for (let i = 0, l = state.manifests.length; i < l; i++) {
-			const manifestEntry = state.manifests[i];
-			const dirInfo = manifestEntry.manifest.dirs && manifestEntry.manifest.dirs[dirKey];
-			if (!dirInfo || !Array.isArray(dirInfo.frames) || !dirInfo.frames.length) continue;
-			return dirInfo.frames.slice();
-		}
-		return null;
-	}
-
-	/**
 	 * 从 manifest 中解析特定图片的帧信息
 	 * @param {string} source 原始图片路径
 	 * @returns {Object|null} 包含 frameIndex, videoUrl, fps 等信息的对象，或标记 missing 的对象
 	 */
 	function getFrameInfoFromManifest(source)
 	{//#
-		let CharFaceId,frameIndex
+		let CharFaceId, frameIndex, isPlus = false
 		if(source && source.includes(TestFace))
 		{
-			let arr = source.replace('.webp','').split('/').slice(-3)
-			frameIndex = arr.pop()
-			if(source.includes('CFID'))CharFaceId = arr.join('/')
-			else CharFaceId = arr.pop()
+			CharFaceId = source.split(TestFace).pop().replace('.webp','').split('/')
+			frameIndex = CharFaceId.pop();
+			isPlus = CharFaceId.length > 1
+			CharFaceId = CharFaceId.join('/');
 		}else return null;
-		if(!CharFaceId.startsWith('CFID'))
-		{
-			if(state.manifest[GAME][CharFaceId])
-			{
-				let num = state.manifest[GAME][CharFaceId][frameIndex]
-				if(typeof num !== 'number')return null;
-				frameIndex = num
-			}else return null;
-		}
 
 		return {
-			normalized: source,
-			missing: false,
+			CharFaceId: CharFaceId,
 			frameIndex: frameIndex,
-			videoUrl: `Video/${GAME}/${CharFaceId}.mp4`
+			isPlus: isPlus,
+			videoUrl: `Video/${GAME}/${CharFaceId}.mp4`,
+			normalized: source
 		};
 	}
 
@@ -450,29 +343,48 @@ const state = {
 	/**
 	 * 解析资源对应的帧信息（包含等待 manifest 加载）
 	 */
-	async function resolveFrameInfo(source) {
-		let CharFaceId,frameIndex
-		if(source && source.includes(TestFace))
-		{
-			let arr = source.replace('.webp','').split('/').slice(-3)
-			frameIndex = arr.pop()
-			if(source.includes('CFID'))CharFaceId = arr.join('/')
-			else CharFaceId = arr.pop()
-		}else return null;
-		if(!CharFaceId.startsWith('CFID') && !state.cf.has(CharFaceId))
-		{
-			state.cf.add(CharFaceId)
-			const json = JSON.parse(await ZipToJson(`Video/${GAME}/${CharFaceId}.mp4`))
-			state.manifest[GAME][CharFaceId] = json
-			$('.INDEX_Emoji').click()
-		}
-		// const manifests = await loadManifest();
-		// if (!manifests || !manifests.length) return null;
+	async function resolveFrameInfo(source)
+	{
 		const frameInfo = getFrameInfoFromManifest(source);
 		if (!frameInfo || frameInfo.missing) return null;
-		return frameInfo.candidates || [frameInfo];
-	}
 
+		let CharFaceId = frameInfo.CharFaceId,frameIndex = frameInfo.frameIndex;
+
+	    // 初始化一个对象，专门用来缓存 Promise
+		if(!state.cfPromises)state.cfPromises = {};
+		if(!frameInfo.isPlus)
+		{
+	        // 如果该 ID 还没有对应的 Promise，说明是第一次请求，开始加载
+	        if(!state.cfPromises[CharFaceId])
+	        {
+	            state.cfPromises[CharFaceId] = (async () =>
+	            {
+	                try
+	                {
+						const json = JSON.parse(await ZipToJson(`Video/${GAME}/${CharFaceId}.mp4`));
+	                    // 确保 manifest 结构存在
+						if(!state.manifest[GAME])state.manifest[GAME] = {};
+						state.manifest[GAME][CharFaceId] = json;
+	                }
+	                catch (error)
+	                {
+	                    console.error(`加载 ${CharFaceId} 失败:`, error);
+	                    // 如果加载失败，必须从缓存中移除，否则后续请求会永远卡在这个失败的 Promise 上
+	                    delete state.cfPromises[CharFaceId]; 
+	                    throw error; // 继续抛出错误，让调用方知道失败了
+	                }
+	            })();
+	        }
+	        
+	        // 无论是正在加载还是已经加载完成，都 await 这个 Promise
+	        // 如果正在加载，这里会暂停等待；如果已经加载完，这里会瞬间通过
+	        await state.cfPromises[CharFaceId];
+	        frameInfo.frameIndex = state.manifest[GAME][CharFaceId][frameIndex]
+		}
+
+		
+		return frameInfo;
+	}
 	/**
 	 * 将相对路径的视频路径解析为绝对 URL
 	 */
@@ -591,7 +503,7 @@ const state = {
 		const video = entry.video;
 		await entry.readyPromise;
 		
-		const fps = (frameIndex && frameIndex.fps) ? frameIndex.fps : (api.fps || 10);
+		const fps = (frameIndex && frameIndex.fps) ? frameIndex.fps : 10;
 		const frameNumber = typeof frameIndex === "object" ? frameIndex.frameIndex : frameIndex;
 		
 		// 【移动端兼容性 Hack】
@@ -653,35 +565,34 @@ const state = {
 	 * 包含多级缓存和并发控制
 	 */
 	async function getFrameDataUrl(source) {
-		const frameCandidates = await resolveFrameInfo(source);
-		if (!frameCandidates || !frameCandidates.length) return null;
+		const frameInfo = await resolveFrameInfo(source);
+		if(!frameInfo)return null;
 
-		for (let i = 0, l = frameCandidates.length; i < l; i++) {
-			const frameInfo = frameCandidates[i];
-			if (state.failedVideos.has(frameInfo.videoUrl)) continue;
+		// if (state.failedVideos.has(frameInfo.videoUrl)) continue;
 
-			const entry = getVideoEntry(frameInfo.videoUrl);
-			// 1. 检查内存缓存，如果已提取过直接返回
+		const entry = getVideoEntry(frameInfo.videoUrl);
+		// 1. 检查内存缓存，如果已提取过直接返回
+		if (entry.cache.has(frameInfo.frameIndex)) return entry.cache.get(frameInfo.frameIndex);
+
+		// 2. 使用 entry.queue 串行化提取任务
+		// 防止多个相同的图片同时请求同一帧时，触发多次并发的 video seek 操作导致性能浪费或画面错乱
+		const dataUrl = await (entry.queue = entry.queue.then(async function()
+		{
+			// 再次检查缓存（双重检查锁定模式），因为排队期间可能已被其他请求提取完毕
 			if (entry.cache.has(frameInfo.frameIndex)) return entry.cache.get(frameInfo.frameIndex);
+			
+			const captured = await captureFrame(entry, frameInfo);
+			entry.cache.set(frameInfo.frameIndex, captured);
+			return captured;
+		}).catch(function(error)
+		{
+			entry.failed = true;
+			state.failedVideos.add(frameInfo.videoUrl);
+			console.warn("[HEVC_CHARFACE] frame extraction failed", error);
+			return null;
+		}));
 
-			// 2. 使用 entry.queue 串行化提取任务
-			// 防止多个相同的图片同时请求同一帧时，触发多次并发的 video seek 操作导致性能浪费或画面错乱
-			const dataUrl = await (entry.queue = entry.queue.then(async function() {
-				// 再次检查缓存（双重检查锁定模式），因为排队期间可能已被其他请求提取完毕
-				if (entry.cache.has(frameInfo.frameIndex)) return entry.cache.get(frameInfo.frameIndex);
-				
-				const captured = await captureFrame(entry, frameInfo);
-				entry.cache.set(frameInfo.frameIndex, captured);
-				return captured;
-			}).catch(function(error) {
-				entry.failed = true;
-				state.failedVideos.add(frameInfo.videoUrl);
-				console.warn("[HEVC_CHARFACE] frame extraction failed", error);
-				return null;
-			}));
-
-			if (dataUrl) return dataUrl;
-		}
+		if (dataUrl) return dataUrl;
 
 		return null;
 	}
@@ -800,11 +711,6 @@ const state = {
 	 */
 	function start() {
 		patchImageError();
-		
-		// 预加载 manifest
-		// loadManifest().catch(function() {
-		// 	return null;
-		// });
 		
 		// 扫描并处理当前页面已有的图片
 		scanNode(document.documentElement);
